@@ -39,6 +39,13 @@ public class BookSellerAgent extends Agent {
     }
 
     protected void takeDown() {
+        try {
+            DFService.deregister(this);
+        }
+        catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
+
         myGui.dispose();
         System.out.println("Seller-agent " + getAID().getName() + " terminating.");
     }
