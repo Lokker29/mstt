@@ -10,22 +10,24 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import lombok.SneakyThrows;
 import lb2.environment.wumpusworld.AgentPosition;
 import lb2.environment.wumpusworld.EfficientHybridWumpusAgent;
 import lb2.environment.wumpusworld.WumpusAction;
 import lb2.environment.wumpusworld.WumpusPercept;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 public class NavigatorAgent extends Agent {
 	EfficientHybridWumpusAgent agent;
-	NavigatorSpeech speech;
 	private AID speleologistAid;
+	private WumpusPercept wumpusPercept;
+
+	private final Random randomGenerator = new Random();
+	private final Map<WumpusAction, List<String>> actionSentences = new HashMap<>();
 
 	@Override
 	protected void setup() {
-		agent = new EfficientHybridWumpusAgent(4, 4, new AgentPosition(1, 1, AgentPosition.Orientation.FACING_NORTH));
-		speech = new NavigatorSpeech();
-
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		dfAgentDescription.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -37,6 +39,18 @@ public class NavigatorAgent extends Agent {
 		} catch(FIPAException fe) {
 			fe.printStackTrace();
 		}
+
+		actionSentences.put(WumpusAction.TURN_LEFT, Messages.NavigatorPhrases.turnLeft);
+		actionSentences.put(WumpusAction.TURN_RIGHT, Messages.NavigatorPhrases.turnRight);
+		actionSentences.put(WumpusAction.FORWARD, Messages.NavigatorPhrases.goForward);
+		actionSentences.put(WumpusAction.SHOOT, Messages.NavigatorPhrases.shoot);
+		actionSentences.put(WumpusAction.GRAB, Messages.NavigatorPhrases.grab);
+		actionSentences.put(WumpusAction.CLIMB, Messages.NavigatorPhrases.climb);
+
+		agent = new EfficientHybridWumpusAgent(
+				4, 4,
+				new AgentPosition(1, 1, AgentPosition.Orientation.FACING_NORTH)
+		);
 
 		DFAgentDescription template = new DFAgentDescription();
 		ServiceDescription sd2 = new ServiceDescription();
@@ -67,36 +81,27 @@ public class NavigatorAgent extends Agent {
 	}
 
 	private class CheckMailBehavior extends CyclicBehaviour {
-		@SneakyThrows
 		@Override
 		public void action() {
 			MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 			ACLMessage msg = myAgent.receive(mt);
 			if(msg != null) {
 				String state = msg.getContent();
-				WumpusPercept wumpusPercept = speech.recognize(state);
-				addBehaviour(new FindActionBehaviour(wumpusPercept));
+				wumpusPercept = parseText(state);
+				addBehaviour(new MakeDecisionBehaviour());
 			} else {
 				block();
 			}
 		}
 	}
 
-	private class FindActionBehaviour extends OneShotBehaviour {
-		WumpusPercept wumpusPercept;
-
-		FindActionBehaviour(WumpusPercept wumpusPercept) {
-			this.wumpusPercept = wumpusPercept;
-		}
-
-		@SneakyThrows
+	private class MakeDecisionBehaviour extends OneShotBehaviour {
 		@Override
 		public void action() {
 			WumpusAction action = agent.act(wumpusPercept).orElseThrow();
+			String actionSentence = generateText(action);
 
 			ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
-			String actionSentence = speech.tellAction(action);
-
 			reply.setLanguage("English");
 			reply.setOntology("WumpusWorld");
 			reply.setContent(actionSentence);
@@ -104,5 +109,52 @@ public class NavigatorAgent extends Agent {
 			reply.addReceiver(speleologistAid);
 			myAgent.send(reply);
 		}
+	}
+
+	public String generateText(WumpusAction action) {
+		List<String> sentences = actionSentences.get(action);
+		int index = randomGenerator.nextInt(sentences.size());
+		return sentences.get(index);
+	}
+
+	public WumpusPercept parseText(String speech) {
+		List<String> feelings = Arrays.stream(
+				speech.split(". ")
+		).map(String::toLowerCase).collect(Collectors.toList());
+
+		WumpusPercept wumpusPercept = new WumpusPercept();
+		for (String feeling : feelings) {
+			for (String word : Messages.PerceptKeyWords.stench) {
+				if (feeling.contains(word)) {
+					wumpusPercept.setStench();
+				}
+				break;
+			}
+			for (String word : Messages.PerceptKeyWords.breeze) {
+				if (feeling.contains(word)) {
+					wumpusPercept.setBreeze();
+				}
+				break;
+			}
+			for (String word : Messages.PerceptKeyWords.glitter) {
+				if (feeling.contains(word)) {
+					wumpusPercept.setGlitter();
+				}
+				break;
+			}
+			for (String word : Messages.PerceptKeyWords.bump) {
+				if (feeling.contains(word)) {
+					wumpusPercept.setBump();
+				}
+				break;
+			}
+			for (String word : Messages.PerceptKeyWords.scream) {
+				if (feeling.contains(word)) {
+					wumpusPercept.setScream();
+				}
+				break;
+			}
+		}
+		return wumpusPercept;
 	}
 }

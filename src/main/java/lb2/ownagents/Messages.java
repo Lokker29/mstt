@@ -2,7 +2,7 @@ package lb2.ownagents;
 
 import java.util.List;
 
-public final class Phrases {
+public final class Messages {
 	public static final class PerceptKeyWords {
 		public static List<String> breeze = List.of("breeze");
 		public static List<String> stench = List.of("stench", "stinky", "smell");
@@ -13,11 +13,11 @@ public final class Phrases {
 	}
 
 	public static final class SpeleologistPhrases {
-		public static List<String> pitNear = List.of("I feel breeze", "It's breezy here", "There is a breeze");
-		public static List<String> wumpusNear = List.of("I smell something", "It's stinky here", "There is a stench");
-		public static List<String> goldNear = List.of("I see something shiny", "It's glittery here", "There is a glitter");
-		public static List<String> wallNear = List.of("I hit the wall", "It's bumping here", "There is a bump");
-		public static List<String> wumpusKilledNear = List.of("I hear something", "It's screaming here", "There is a scream");
+		public static List<String> pitNear = List.of("I feel breeze", "There is a breeze", "It’s a cool breeze here");
+		public static List<String> wumpusNear = List.of("I smell something", "There is a stench", "It's stinky here");
+		public static List<String> goldNear = List.of("I see something shiny", "There is a glitter", "It's glittery here");
+		public static List<String> wallNear = List.of("I hit the wall", "There is a bump", "It's bumping here");
+		public static List<String> wumpusKilledNear = List.of("I hear something", "There is a scream", "It's screaming here");
 		public static List<String> nothing = List.of("I see nothing", "There is nothing");
 	}
 

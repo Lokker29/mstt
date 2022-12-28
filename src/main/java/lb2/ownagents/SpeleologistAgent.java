@@ -11,18 +11,21 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import lb2.environment.wumpusworld.WumpusPercept;
 import lombok.SneakyThrows;
 import lb2.environment.wumpusworld.WumpusAction;
+
+import java.util.*;
 
 public class SpeleologistAgent extends Agent {
 	private AID environmentAid;
 	private AID navigatorAid;
-	SpeleologistSpeech speech;
+
+	private final Random randomGenerator = new Random();
+	private final Map<List<String>, WumpusAction> actionKeyWords = new HashMap<>();
 
 	@Override
 	protected void setup() {
-		speech = new SpeleologistSpeech();
-
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		dfAgentDescription.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -34,6 +37,14 @@ public class SpeleologistAgent extends Agent {
 		} catch(FIPAException fe) {
 			fe.printStackTrace();
 		}
+
+		actionKeyWords.put(Messages.ActionKeyWords.turnLeft, WumpusAction.TURN_LEFT);
+		actionKeyWords.put(Messages.ActionKeyWords.turnRight, WumpusAction.TURN_RIGHT);
+		actionKeyWords.put(Messages.ActionKeyWords.goForward, WumpusAction.FORWARD);
+		actionKeyWords.put(Messages.ActionKeyWords.shoot, WumpusAction.SHOOT);
+		actionKeyWords.put(Messages.ActionKeyWords.grab, WumpusAction.GRAB);
+		actionKeyWords.put(Messages.ActionKeyWords.climb, WumpusAction.CLIMB);
+
 		System.out.println("Speleologist-agent " + getAID().getName() + " is ready.");
 
 		addBehaviour(new SpeleologistBehaviour());
@@ -107,7 +118,7 @@ public class SpeleologistAgent extends Agent {
 				case 2:
 					ACLMessage state = new ACLMessage(ACLMessage.INFORM);
 
-					String feelings = speech.tellPercept(answer.wumpusPercept);
+					String feelings = generatePercept(answer.wumpusPercept);
 					System.out.println("Spl: Feelings = " + feelings);
 
 					state.setLanguage("English");
@@ -124,7 +135,7 @@ public class SpeleologistAgent extends Agent {
 					ACLMessage reply2 = myAgent.receive(messageTemplate);
 					if(reply2 != null) {
 						String action = reply2.getContent();
-						wumpusAction = speech.recognize(action);
+						wumpusAction = recognize(action);
 						System.out.println("Nav: Action = " + action);
 						step = 4;
 					} else {
@@ -141,7 +152,6 @@ public class SpeleologistAgent extends Agent {
 							MessageTemplate.MatchReplyTo(new AID[]{myAgent.getAID()}));
 					step = 5;
 					break;
-
 				case 5:
 					ACLMessage envReply = myAgent.receive(messageTemplate);
 					if(envReply != null) {
@@ -170,6 +180,44 @@ public class SpeleologistAgent extends Agent {
 		public boolean done() {
 			return step == 7;
 		}
+	}
 
+	public WumpusAction recognize(String message) {
+		String lowerMessage = message.toLowerCase();
+		return actionKeyWords.keySet().stream()
+				.filter(keyWords -> keyWords.stream().anyMatch(lowerMessage::contains))
+				.findFirst()
+				.map(actionKeyWords::get)
+				.orElseThrow();
+	}
+
+	public String generatePercept(WumpusPercept wumpusPercept) {
+		List<String> feelings = new ArrayList<>();
+
+		if(wumpusPercept.isBreeze()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.pitNear));
+		}
+		if(wumpusPercept.isStench()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.wumpusNear));
+		}
+		if(wumpusPercept.isGlitter()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.goldNear));
+		}
+		if(wumpusPercept.isBump()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.wallNear));
+		}
+		if(wumpusPercept.isScream()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.wumpusKilledNear));
+		}
+		if(feelings.isEmpty()) {
+			feelings.add(getRandomMessage(Messages.SpeleologistPhrases.nothing));
+		}
+
+		return String.join(". ", feelings);
+	}
+
+	private String getRandomMessage(List<String> sentences) {
+		int index = randomGenerator.nextInt(sentences.size());
+		return sentences.get(index);
 	}
 }

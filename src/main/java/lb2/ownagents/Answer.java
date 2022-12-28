@@ -6,9 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lb2.environment.wumpusworld.WumpusPercept;
 
-@AllArgsConstructor
 @ToString
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor
 public class Answer {
     WumpusPercept wumpusPercept;

@@ -124,7 +124,7 @@ public class EnvironmentAgent extends Agent {
 		@Override
 		public void action() {
 			ACLMessage report = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-			report.setContent("Success");
+			report.setContent("OK");
 			report.addReceiver(speleologistAID);
 			report.addReplyTo(speleologistAID);
 			myAgent.send(report);
